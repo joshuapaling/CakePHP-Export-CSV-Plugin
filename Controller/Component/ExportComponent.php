@@ -20,26 +20,23 @@ class ExportComponent extends Component {
 	}
 
 	function exportCsv($data) {
-		unset($data[0]['Employee']);
+		//unset($data[0]['Employee']); // for testing!
 		$this->controller->autoRender = false;
-		debug($data);
+		// debug($data);
+		// echo '--------------------------------<br />';
 		foreach($data as $key => $value){
 			$flatArray = array();
 			$this->flattenArray($value, $flatArray);
 			$data[$key] = $flatArray;
 		}
 
-		$headerRow = array();
-		foreach($data as $key => $value){
-			if(!array_search($key, $headerRow)){
-				$headerRow[] = $key;
-			}
-			// debug(array_keys($value));
-			// $headerRow = array_merge($headerRow, array_keys($value));
-		}
 
-		debug($headerRow);
-		debug($data); die;
+		$headerRow = $this->getUniqueKeysForHeaderRow($data);
+		$data = $this->addMissingKeys($headerRow, $data);
+		// echo 'header row is: ';
+		// debug($headerRow);
+		// echo 'data is: ';
+		// debug($data); die;
 
 		//debug($headerRow); die;
 
@@ -70,6 +67,36 @@ class ExportComponent extends Component {
 				$flatArray[$chainedKey] = $value;
 			}
 		}
+	}
+
+	public function getUniqueKeysForHeaderRow($data){
+		$headerRow = array();
+		foreach($data as $key => $value){
+			$fieldNames = array_keys($value);
+			foreach($fieldNames as $fieldName){
+				if(array_search($fieldName, $headerRow) === false){
+					$headerRow[] = $fieldName;
+				}
+			}
+		}
+
+		return $headerRow;
+	}
+
+	public function addMissingKeys($headerRow, $data){
+		$newData = array();
+		foreach($data as $key => $value){
+			foreach($headerRow as $headerKey => $headerValue){
+				if(!isset($value[$headerValue])){
+					//$value[$headerValue] = '';
+					$newData[$key][$headerValue] = '';
+				} else {
+					$newData[$key][$headerValue] = $value;
+				}
+			}
+		}
+
+		return $data;
 	}
 
 
