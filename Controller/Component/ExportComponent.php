@@ -10,57 +10,52 @@ class ExportComponent extends Component {
 	public $controller;
 
 /**
- * Initializes AuthComponent for use in the controller
+ * Starts up ExportComponent for use in the controller
  *
  * @param Controller $controller A reference to the instantiating controller object
  * @return void
  */
-	public function initialize(Controller $controller) {
+	public function startup(Controller $controller) {
 		$this->controller = $controller;
 	}
 
-	function exportCsv($data) {
-		//unset($data[0]['Employee']); // for testing!
+	function exportCsv($data, $fileName = '', $maxExecutionSeconds = null, $delimiter = ',', $enclosure = '"') {
+
 		$this->controller->autoRender = false;
-		// debug($data);
-		// echo '--------------------------------<br />';
-		foreach($data as $key => $value){
-			$flatArray = array();
-			$this->flattenArray($value, $flatArray);
-			$data[$key] = $flatArray;
+
+		// Flatten each row of the data array
+		$flatData = array();
+		foreach($data as $numericKey => $row){
+			$flatRow = array();
+			$this->flattenArray($row, $flatRow);
+			$flatData[$numericKey] = $flatRow;
 		}
 
+		$headerRow = $this->getKeysForHeaderRow($flatData);
+		$flatData = $this->mapAllRowsToHeaderRow($headerRow, $flatData);
 
-		$headerRow = $this->getUniqueKeysForHeaderRow($data);
-		$data = $this->addMissingKeys($headerRow, $data);
-		// echo 'header row is: ';
-		// debug($headerRow);
-		// echo 'data is: ';
-		// debug($data); die;
+		if(!empty($maxExecutionSeconds)){
+			ini_set('max_execution_time', $maxExecutionSeconds); //increase max_execution_time if data set is very large
+		}
 
-		//debug($headerRow); die;
+		if(empty($fileName)){
+			$fileName = "export_".date("Y-m-d").".csv";
+		}
 
-		$delimiter = ',';
-		$enclosure = '"';
-		ini_set('max_execution_time', 600); //increase max_execution_time to 10 min if data set is very large
-
-		$fileName = "export_".date("Y.m.d").".csv";
 		$csvFile = fopen('php://output', 'w');
-
 		header('Content-type: application/csv');
 		header('Content-Disposition: attachment; filename="'.$fileName.'"');
 
 		fputcsv($csvFile,$headerRow, $delimiter, $enclosure);
-		foreach ($data as $key => $value) {
+		foreach ($flatData as $key => $value) {
 			fputcsv($csvFile, $value, $delimiter, $enclosure);
 		}
-
 		fclose($csvFile);
 	}
 
 	public function flattenArray($array, &$flatArray, $parentKeys = ''){
 		foreach($array as $key => $value){
-			$chainedKey = ($parentKeys)? $parentKeys.'.'.$key : $key;
+			$chainedKey = ($parentKeys !== '')? $parentKeys.'.'.$key : $key;
 			if(is_array($value)){
 				$this->flattenArray($value, $flatArray, $chainedKey);
 			} else {
@@ -69,11 +64,10 @@ class ExportComponent extends Component {
 		}
 	}
 
-	public function getUniqueKeysForHeaderRow($data){
+	public function getKeysForHeaderRow($data){
 		$headerRow = array();
 		foreach($data as $key => $value){
-			$fieldNames = array_keys($value);
-			foreach($fieldNames as $fieldName){
+			foreach($value as $fieldName => $fieldValue){
 				if(array_search($fieldName, $headerRow) === false){
 					$headerRow[] = $fieldName;
 				}
@@ -83,20 +77,20 @@ class ExportComponent extends Component {
 		return $headerRow;
 	}
 
-	public function addMissingKeys($headerRow, $data){
+	public function mapAllRowsToHeaderRow($headerRow, $data){
 		$newData = array();
-		foreach($data as $key => $value){
-			foreach($headerRow as $headerKey => $headerValue){
-				if(!isset($value[$headerValue])){
-					//$value[$headerValue] = '';
-					$newData[$key][$headerValue] = '';
+		foreach($data as $intKey => $rowArray){
+			foreach($headerRow as $headerKey => $columnName){
+				if(!isset($rowArray[$columnName])){
+					//$rowArray[$columnName] = '';
+					$newData[$intKey][$columnName] = '';
 				} else {
-					$newData[$key][$headerValue] = $value;
+					$newData[$intKey][$columnName] = $rowArray[$columnName];
 				}
 			}
 		}
 
-		return $data;
+		return $newData;
 	}
 
 

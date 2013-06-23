@@ -1,21 +1,19 @@
-# WORK IN PROGRESS - NOT YET READY FOR USE!!! #
-
-
-
-
 # CakePHP Export Plugin #
 
-A Export plugin for CakePHP 2.X - pass it an array which is the result of a CakePHP Model find('all') call, and it'll flatten it and download it as a .csv file.
+	public function export_data() {
+		$data = $this->MyModel->find('all');
+		$this->Export->exportCsv($data);
+	}
 
-Exporting as csv is nothing special - the cool thing is that you can pass it a multi-level nested array, and it'll handle your belongsTo associations gracefully.
+A Export plugin for CakePHP 2.X - pass it an array which is the result of a CakePHP Model find('all') call (or other similar method), and it'll flatten it and download it as a .csv file.
 
-As for hasMany (and other) associations, it'll just include them inside one csv 'cell' as a json version of the array. I'm yet to think of a graceful solution for handling nested hasMany's - though I'm open to suggestions, or pull requests.
+You can pass it a multi-level nested array (eg. when using containable, or with recursive set > -1), and it'll handle your belongsTo associations gracefully. If there's missing data in some rows - eg. the belongsTo association for some rows is blank, it'll handle that OK too.
 
+As for hasMany (and other) associations, I don't think they can (or ever need to be) handled gracefully in a single CSV export. If you think differently, I'm open to suggestions or pull requests.
 
 ## Introduction ##
 
-The plugin is quick and easy to install. The installation instructions are somewhat long - but that's just to provide the clarity I wished stuff had when I was a CakePHP n00b. If you're not new to Cake, then install the component and skip to the final step.
-
+The plugin is quick and easy to install. The installation instructions are somewhat long - but that's just to provide the clarity I wished stuff had when I was a CakePHP n00b. If you're not new to Cake, then install the plugin / component and skip to the final step.
 
 ## Example input / output ##
 
@@ -52,12 +50,30 @@ If you added it to your AppController.php, it might start something like this:
 	class AppController extends Controller {
 		var $components = array('Auth', 'Session', 'Cookie', RequestHandler', 'Security', 'Export.Export');
 
-### 4. Start Exporting your Data! ###
+### 4. Start Exporting your Data! Example: ###
 
-	public function export_data() {
-		$data = $this->myModel->find('all');
-		$this->Export->exportCsv($data);
+Say you had a model / controller for Cities. And say that a City belongsTo a State, which belongsTo a country. Your export function in your Cities controller might look like this:
+
+	public function export_cities() {
+		// It's OK to use containable or recursive in the export data
+		$this->City->contain(array(
+			'State' => array(
+				'Country'
+			)
+		));
+		$data = $this->City->find('all');
+		$this->Export->exportCsv($data, 'cities.csv'); // a CSV file called myExport.csv will be downloaded by the browser.
 	}
+
+### Options ###
+
+The exportCsv method can take up to 5 params, though mostly you'll only need the first two:
+
+1. $data - an array of data to export. This array should be of the format returned by a call to $this->MyModel->find('all');
+2. $fileName (optional) - the name of the file to download. If blank, it will use a date-stamped name like export_2013-09-24.csv
+3. $maxExecutionSeconds (optional) - if set, this will change the PHP max_execution_time. Useful when dealing with large amounts of data.
+4. $delimiter (optional) - The delimiter for your CSV. Defaults to comma (,).
+5. $enclosure (optional) - The enclosure for your CSV. Defaults to double-quote (").
 
 
 ## License ##
