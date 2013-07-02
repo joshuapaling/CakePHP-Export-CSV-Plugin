@@ -1,3 +1,9 @@
+## Deprecated 2 July 2013 ##
+
+Hmm... that was a short life cycle! Shortly after making this plugin, I found [Jose's CSV View Plugin](https://github.com/josegonzalez/CsvView), which is more flexible but is (or was) more long-winded in terms of exporting CSV's. So, I wrote a component for Jose's plugin to merge the best features of mine into his.
+
+Jose has accepted the pull request, so I suggest you use his plugin, and use it's CsvView Component to do super quick exports with only a couple of lines of code.
+
 # CakePHP Export as CSV Plugin #
 
 	var $components = array('Export.Export');
